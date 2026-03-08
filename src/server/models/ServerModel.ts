@@ -103,7 +103,9 @@ export class Server {
       game: this.getGameModel(player.game),
       id: player.id,
       runId: runId,
-      pickedCorporationCard: player.pickedCorporationCard ? cardsToModel(player, [player.pickedCorporationCard]) : [],
+      pickedCorporationCard: player.pickedCorporationCard
+        ? cardsToModel(player, [player.pickedCorporationCard, ...player.secondaryCorporations])
+        : [],
       preludeCardsInHand: cardsToModel(player, player.preludeCardsInHand),
       thisPlayer: thisPlayer,
       waitingFor: this.getWaitingFor(player, player.getWaitingFor()),

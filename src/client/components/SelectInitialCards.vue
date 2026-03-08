@@ -24,7 +24,8 @@
     <SelectCard :playerView="playerView" :playerinput="projectCardOption" :onsave="noop" :showtitle="true" v-on:cardschanged="cardsChanged" />
     <template v-if="mainCorporation !== undefined">
       <div><span v-i18n>Starting Megacredits:</span> <div class="megacredits">{{getStartingMegacredits()}}</div></div>
-      <div v-if="hasPrelude"><span v-i18n>After Preludes:</span> <div class="megacredits">{{getStartingMegacredits() + getAfterPreludes()}}</div></div>
+      <div v-if="selectedCorporations.length > 1"><span v-i18n>After Secondary Corporations:</span> <div class="megacredits">{{getStartingMegacredits() + getAfterSecondaryCorporations()}}</div></div>
+      <div v-if="hasPrelude"><span v-i18n>After Preludes:</span> <div class="megacredits">{{getStartingMegacredits() + getAfterSecondaryCorporations() + getAfterPreludes()}}</div></div>
     </template>
     <div v-if="warning !== undefined" class="tm-warning">
       <label class="label label-error">{{ $t(warning) }}</label>
@@ -121,16 +122,78 @@ export default defineComponent({
     noop() {
       throw new Error('should not be called');
     },
+    getAfterSecondaryCorporations() {
+      if (this.mainCorporation === undefined) return 0;
+      const secondaryCorps = this.selectedCorporations.filter((name) => name !== this.mainCorporation);
+      let total = 0;
+      // Active corps accumulate as each secondary corp is played in order
+      const activeCorps: Array<CardName> = [this.mainCorporation];
+      for (const name of secondaryCorps) {
+        const corp = getCardOrThrow(name);
+        let mc = (corp.startingMegaCredits ?? 0) - constants.SECONDARY_CORP_COST;
+        // Check if playing this corp triggers effects from already-active corps
+        mc += this.corpPlayedBonus(name, activeCorps);
+        total += mc;
+        activeCorps.push(name);
+      }
+      return total;
+    },
+    /** Bonus MC from playing a corporation card when `activeCorps` are already in play. */
+    corpPlayedBonus(playedCorp: CardName, activeCorps: Array<CardName>): number {
+      const card = getCardOrThrow(playedCorp);
+      let bonus = 0;
+      // Check effects from already-active corps AND the corp's own effect on itself
+      for (const activeCorp of [...activeCorps, playedCorp]) {
+        bonus += this.effectBonusForCard(card, activeCorp);
+      }
+      return bonus;
+    },
+    /** Bonus MC that `activeCorp`'s effect provides when `card` (a prelude or corp) is played. */
+    effectBonusForCard(card: {tags: ReadonlyArray<string>, productionBox?: {megacredits?: number}, name: CardName}, activeCorp: CardName): number {
+      switch (activeCorp) {
+      case CardName.MANUTECH:
+        return card.productionBox?.megacredits ?? 0;
+      case CardName.THARSIS_REPUBLIC:
+        // Cities from preludes — corps don't typically place cities on play
+        return 0;
+      case CardName.PHARMACY_UNION: {
+        const tags = card.tags.filter((tag) => tag === Tag.MICROBE).length;
+        return (-4 * tags);
+      }
+      case CardName.SPLICE: {
+        const microbeTags = card.tags.filter((tag) => tag === Tag.MICROBE).length;
+        return (2 * microbeTags);
+      }
+      case CardName.SAGITTA_FRONTIER_SERVICES: {
+        const count = card.tags.filter((tag) => tag !== Tag.WILD).length;
+        return count === 0 ? 4 : count === 1 ? 1 : 0;
+      }
+      default:
+        return 0;
+      }
+    },
     getAfterPreludes() {
       return sum(this.selectedPreludes.map((prelude) => {
         const card = getCardOrThrow(prelude);
         const base = card.startingMegaCredits ?? 0;
-        return base + this.extra(prelude);
+        return base + this.extraFromAllCorps(prelude);
       }));
     },
-    extra(prelude: CardName): number {
+    /** Computes bonus MC a prelude gets from ALL active corporations (main + secondary). */
+    extraFromAllCorps(prelude: CardName): number {
+      const allCorps = this.mainCorporation
+        ? [this.mainCorporation, ...this.selectedCorporations.filter((c) => c !== this.mainCorporation)]
+        : this.selectedCorporations;
+      let bonus = 0;
+      for (const corp of allCorps) {
+        bonus += this.extraForCorp(prelude, corp);
+      }
+      return bonus;
+    },
+    /** Computes bonus MC a prelude gets from a specific corporation's effect. */
+    extraForCorp(prelude: CardName, corp: CardName): number {
       const card = getCardOrThrow(prelude);
-      switch (this.mainCorporation) {
+      switch (corp) {
       // For each step you increase the production of a resource ... you also gain that resource.
       case CardName.MANUTECH:
         return card.productionBox?.megacredits ?? 0;

@@ -1424,12 +1424,27 @@ export class Player implements IPlayer {
       if (this.secondaryCorporations.length > 0) {
         game.phase = Phase.CORPORATIONS;
 
+        // Mark corps that can't be afforded with a warning (like prelude fizzle)
+        for (const corp of this.secondaryCorporations) {
+          corp.warnings.clear();
+          if (!this.canAfford(constants.SECONDARY_CORP_COST - corp.startingMegaCredits)) {
+            corp.warnings.add('corpFizzle');
+          }
+        }
+
         const selectCorp = new SelectCard<ICorporationCard>(
           'Choose corporation to play', 'Play', this.secondaryCorporations)
           .andThen(([card]) => {
             inplaceRemove(this.secondaryCorporations, card);
-            this.playCorporationCard(card);
-            game.defer(new SelectPaymentDeferred(this, constants.SECONDARY_CORP_COST, {title: 'Select how to pay for secondary corporation'}));
+            // If the player can't afford the secondary corp cost after gaining its starting MC, fizzle
+            if (!this.canAfford(constants.SECONDARY_CORP_COST - card.startingMegaCredits)) {
+              this.game.log('${0} fizzled. ${1} gains 15 M€.', (b) => b.card(card).player(this));
+              this.stock.add(Resource.MEGACREDITS, 15);
+              this.game.corporationDeck.discard(card);
+            } else {
+              this.playCorporationCard(card);
+              game.defer(new SelectPaymentDeferred(this, constants.SECONDARY_CORP_COST, {title: 'Select how to pay for secondary corporation'}));
+            }
             return undefined;
           });
 

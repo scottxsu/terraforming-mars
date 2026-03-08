@@ -82,6 +82,19 @@ class CardProcessor {
     }
 
     const production = card.behavior?.production;
+    // Convert partial static production to full Units. Dynamic units (tag counts, etc.) become 0.
+    const staticProductionBox = (() => {
+      if (production === undefined) return Units.EMPTY;
+      if (Units.isUnits(production)) return production;
+      const partial: Partial<Units> = {};
+      for (const key of Units.keys) {
+        const val = production[key];
+        if (typeof val === 'number') {
+          partial[key] = val;
+        }
+      }
+      return Units.of(partial);
+    })();
     const clientCard: ClientCard = {
       module: module,
       name: card.name,
@@ -92,7 +105,7 @@ class CardProcessor {
       type: card.type,
       requirements: card.requirements ?? [],
       metadata: card.metadata,
-      productionBox: Units.isUnits(production) ? production : Units.EMPTY, // Dynamic units aren't used on on the client side.
+      productionBox: staticProductionBox,
       resourceType: card.resourceType,
       startingMegaCredits: startingMegaCredits,
       cardCost: cardCost,

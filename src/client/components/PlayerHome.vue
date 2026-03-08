@@ -180,11 +180,11 @@
         </div>
       </div>
 
-      <template v-if="playerView.pickedCorporationCard.length === 1">
+      <template v-if="playerView.pickedCorporationCard.length >= 1">
         <dynamic-title title="Your selected cards:" :color="thisPlayer.color"/>
         <div>
-          <div class="cardbox">
-            <Card :card="playerView.pickedCorporationCard[0]"/>
+          <div v-for="card in playerView.pickedCorporationCard" :key="card.name" class="cardbox">
+            <Card :card="card"/>
           </div>
           <template v-if="game.gameOptions.expansions.prelude">
             <div v-for="card in playerView.preludeCardsInHand" :key="card.name" class="cardbox">

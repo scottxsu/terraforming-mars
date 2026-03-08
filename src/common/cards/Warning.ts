@@ -12,6 +12,7 @@ export type Warning =
  'removeOwnPlants' |
  'buildOnLuna' |
  'preludeFizzle' |
+ 'corpFizzle' |
  'deckTooSmall' |
  'cannotAffordBoardOfDirectors' |
  'marsIsTerraformed' |

@@ -126,6 +126,7 @@ export class Player implements IPlayer {
 
   // Cards
   public dealtCorporationCards: Array<ICorporationCard> = [];
+  public secondaryCorporations: Array<ICorporationCard> = [];
   public dealtPreludeCards: Array<IPreludeCard> = [];
   public dealtCeoCards: Array<ICeoCard> = [];
   public dealtProjectCards: Array<IProjectCard> = [];
@@ -1419,6 +1420,31 @@ export class Player implements IPlayer {
     this.game.inDoubleDown = false;
 
     if (!headStartIsInEffect) {
+      // Secondary corporations must be played before preludes
+      if (this.secondaryCorporations.length > 0) {
+        game.phase = Phase.CORPORATIONS;
+
+        const selectCorp = new SelectCard<ICorporationCard>(
+          'Choose corporation to play', 'Play', this.secondaryCorporations)
+          .andThen(([card]) => {
+            inplaceRemove(this.secondaryCorporations, card);
+            this.playCorporationCard(card);
+            game.defer(new SelectPaymentDeferred(this, constants.SECONDARY_CORP_COST, {title: 'Select how to pay for secondary corporation'}));
+            return undefined;
+          });
+
+        this.setWaitingFor(selectCorp, this.runWhenEmpty(() => {
+          this.incrementActionsTaken();
+          if (this.secondaryCorporations.length === 0) {
+            game.playerIsFinishedTakingActions();
+            return;
+          }
+          this.takeAction();
+        }));
+
+        return;
+      }
+
       // Prelude cards have to be played first
       if (this.preludeCardsInHand.length > 0) {
         game.phase = Phase.PRELUDES;
@@ -1495,9 +1521,8 @@ export class Player implements IPlayer {
       }
 
       this.setWaitingFor(orOptions, this.runWhenEmpty(() => {
-        if (this.pendingInitialActions.length === 0) {
-          this.incrementActionsTaken();
-        }
+        // Each initial action counts as one action
+        this.incrementActionsTaken();
         this.timer.rebate(constants.BONUS_SECONDS_PER_ACTION * 1000);
         this.takeAction();
       }));
@@ -1736,6 +1761,7 @@ export class Player implements IPlayer {
       pendingInitialActions: this.pendingInitialActions.map(toName),
       // Cards
       dealtCorporationCards: this.dealtCorporationCards.map(toName),
+      secondaryCorporations: this.secondaryCorporations.map(toName),
       dealtPreludeCards: this.dealtPreludeCards.map(toName),
       dealtCeoCards: this.dealtCeoCards.map(toName),
       dealtProjectCards: this.dealtProjectCards.map(toName),
@@ -1852,6 +1878,7 @@ export class Player implements IPlayer {
 
     player.pendingInitialActions = corporationCardsFromJSON(d.pendingInitialActions ?? []);
     player.dealtCorporationCards = corporationCardsFromJSON(d.dealtCorporationCards);
+    player.secondaryCorporations = corporationCardsFromJSON(d.secondaryCorporations ?? []);
     player.dealtPreludeCards = preludesFromJSON(d.dealtPreludeCards);
     player.dealtCeoCards = ceosFromJSON(d.dealtCeoCards);
     player.dealtProjectCards = cardsFromJSON(d.dealtProjectCards);

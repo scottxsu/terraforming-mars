@@ -57,6 +57,8 @@ export type CreateGameModel = {
   soloTR: boolean;
   startingCeos: number;
   startingCorporations: number;
+  corporationsToKeep: number;
+  corporationsDraftVariant: boolean | undefined;
   startingPreludes: number;
   startingPreludesInHand: number;
   twoCorpsVariant: boolean;

@@ -112,6 +112,8 @@ describe('ApiCreateGame', () => {
         startingCeos: 0,
         startingPreludes: 0,
         startingPreludesInHand: 2,
+        corporationsToKeep: 1,
+        corporationsDraftVariant: false,
       };
       req.emitter.emit('data', JSON.stringify(newGameConfig));
       req.emitter.emit('end');

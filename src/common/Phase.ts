@@ -13,6 +13,8 @@ export enum Phase {
    */
   INITIALDRAFTING = 'initial_drafting',
 
+  /** Between 1st gen research and action phases, each player plays their secondary corporations. */
+  CORPORATIONS = 'corporations',
   /** Between 1st gen research and action phases, each player plays their preludes. */
   PRELUDES = 'preludes',
   /** Between 1st gen research and action phases, each player plays their CEOs. */

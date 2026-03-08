@@ -156,6 +156,8 @@ export class ApiCreateGame extends Handler {
             soloTR: gameReq.soloTR,
             startingCeos: gameReq.startingCeos,
             startingCorporations: gameReq.startingCorporations,
+            corporationsToKeep: gameReq.corporationsToKeep,
+            corporationsDraftVariant: gameReq.corporationsDraftVariant,
             startingPreludes: gameReq.startingPreludes,
             startingPreludesInHand: gameReq.startingPreludesInHand,
             starWarsExpansion: gameReq.expansions.starwars,

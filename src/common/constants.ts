@@ -47,6 +47,10 @@ export const POLITICAL_AGENDAS_MAX_ACTION_USES = 3;
 export const PRELUDE_CARDS_DEALT_PER_PLAYER = 4;
 export const PRELUDE_CARDS_KEPT_PER_PLAYER = 2;
 
+// Corporation
+export const CORPORATIONS_KEPT_PER_PLAYER = 1;
+export const SECONDARY_CORP_COST = 42;
+
 // CEO
 export const CEO_CARDS_DEALT_PER_PLAYER = 3;
 

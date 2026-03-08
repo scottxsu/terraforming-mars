@@ -195,6 +195,11 @@
                                 <span v-i18n>Starting Corporations</span>
                             </label>
 
+                            <label for="corporationsToKeepNum-checkbox">
+                            <input type="number" class="create-game-corporations-count" value="1" min="1" :max="startingCorporations" v-model="corporationsToKeep" id="corporationsToKeepNum-checkbox">
+                                <span v-i18n>Corporations to Keep</span>
+                            </label>
+
                             <template v-if="expansions.prelude">
                               <label for="startingPreludeENum-checkbox">
                               <div class="create-game-expansion-icon expansion-icon-prelude"></div>
@@ -370,6 +375,13 @@
                                 <input type="checkbox" name="ceosDraft" v-model="ceosDraftVariant" id="ceosDraft-checkbox">
                                 <label for="ceosDraft-checkbox">
                                   <span v-i18n>CEO Draft</span>
+                                </label>
+                              </div>
+
+                              <div v-if="corporationsToKeep > 1">
+                                <input type="checkbox" name="corporationsDraft" v-model="corporationsDraftVariant" id="corporationsDraft-checkbox">
+                                <label for="corporationsDraft-checkbox">
+                                  <span v-i18n>Corporation Draft</span>
                                 </label>
                               </div>
                             </div>
@@ -1141,6 +1153,8 @@ export default defineComponent({
         includeFanMA,
         modularMA: this.modularMA,
         startingCorporations,
+        corporationsToKeep: this.corporationsToKeep,
+        corporationsDraftVariant: this.corporationsDraftVariant ?? false,
         soloTR,
         clonedGamedId,
         initialDraft,

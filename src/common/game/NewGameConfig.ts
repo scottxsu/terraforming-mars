@@ -62,6 +62,8 @@ export interface NewGameConfig {
   preludeDraftVariant: boolean;
   ceosDraftVariant: boolean;
   startingCorporations: number;
+  corporationsToKeep: number;
+  corporationsDraftVariant: boolean;
   shuffleMapOption: boolean;
   randomMA: RandomMAOptionType;
   includeFanMA: boolean,

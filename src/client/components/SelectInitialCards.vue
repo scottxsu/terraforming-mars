@@ -5,6 +5,12 @@
       ref="confirmation"
       v-on:accept="confirmSelection" />
     <SelectCard :playerView="playerView" :playerinput="corpCardOption" :showtitle="true" :onsave="noop" v-on:cardschanged="corporationChanged" />
+    <div v-if="selectedCorporations.length > 1" class="select-main-corporation">
+      <label v-i18n>Main Corporation (funds card purchases):</label>
+      <select v-model="mainCorporation" @change="validate">
+        <option v-for="corp in selectedCorporations" :key="corp" :value="corp">{{ corp }}</option>
+      </select>
+    </div>
     <div v-if="playerCanChooseAridor" class="player_home_colony_cont">
       <div v-i18n>These are the colony tiles Aridor may choose from:</div>
       <div class="discarded-colonies-for-aridor">
@@ -16,7 +22,7 @@
     <SelectCard v-if="hasPrelude" :playerView="playerView" :playerinput="preludeCardOption" :onsave="noop" :showtitle="true" v-on:cardschanged="preludesChanged" />
     <SelectCard v-if="hasCeo" :playerView="playerView" :playerinput="ceoCardOption" :onsave="noop" :showtitle="true" v-on:cardschanged="ceosChanged" />
     <SelectCard :playerView="playerView" :playerinput="projectCardOption" :onsave="noop" :showtitle="true" v-on:cardschanged="cardsChanged" />
-    <template v-if="selectedCorporations.length === 1">
+    <template v-if="mainCorporation !== undefined">
       <div><span v-i18n>Starting Megacredits:</span> <div class="megacredits">{{getStartingMegacredits()}}</div></div>
       <div v-if="hasPrelude"><span v-i18n>After Preludes:</span> <div class="megacredits">{{getStartingMegacredits() + getAfterPreludes()}}</div></div>
     </template>
@@ -55,8 +61,8 @@ type DataModel = {
   selectedCards: Array<CardName>,
   // End result will be a single CEO, but the player may select multiple while deciding what to keep.
   selectedCeos: Array<CardName>,
-  // End result will be a single corporation, but the player may select multiple while deciding what to keep.
   selectedCorporations: Array<CardName>,
+  mainCorporation: CardName | undefined,
   selectedPreludes: Array<CardName>,
   valid: boolean,
   warning: string | undefined,
@@ -105,6 +111,7 @@ export default defineComponent({
       selectedCards: [],
       selectedCeos: [],
       selectedCorporations: [],
+      mainCorporation: undefined,
       selectedPreludes: [],
       valid: false,
       warning: undefined,
@@ -123,7 +130,7 @@ export default defineComponent({
     },
     extra(prelude: CardName): number {
       const card = getCardOrThrow(prelude);
-      switch (this.selectedCorporations.length === 1 ? this.selectedCorporations[0] : undefined) {
+      switch (this.mainCorporation) {
       // For each step you increase the production of a resource ... you also gain that resource.
       case CardName.MANUTECH:
         return card.productionBox?.megacredits ?? 0;
@@ -196,10 +203,10 @@ export default defineComponent({
       }
     },
     getStartingMegacredits() {
-      if (this.selectedCorporations.length !== 1) {
+      if (this.mainCorporation === undefined) {
         return NaN;
       }
-      const corpName = this.selectedCorporations[0];
+      const corpName = this.mainCorporation;
       const corporation = getCardOrThrow(corpName);
       // The ?? 0 is only because IClientCard applies to _all_ cards.
 
@@ -230,10 +237,14 @@ export default defineComponent({
         responses: [],
       };
 
-      if (this.selectedCorporations.length === 1) {
+      if (this.selectedCorporations.length >= 1) {
+        // Ensure main corporation is first in the array
+        const corps = this.mainCorporation && this.selectedCorporations.length > 1
+          ? [this.mainCorporation, ...this.selectedCorporations.filter((c) => c !== this.mainCorporation)]
+          : this.selectedCorporations;
         result.responses.push({
           type: 'card',
-          cards: [this.selectedCorporations[0]],
+          cards: corps,
         });
       }
       if (this.hasPrelude) {
@@ -265,6 +276,12 @@ export default defineComponent({
     },
     corporationChanged(cards: Array<CardName>) {
       this.selectedCorporations = cards;
+      // Auto-select main corp
+      if (cards.length === 1) {
+        this.mainCorporation = cards[0];
+      } else if (cards.length > 1 && (this.mainCorporation === undefined || !cards.includes(this.mainCorporation))) {
+        this.mainCorporation = cards[0];
+      }
       this.validate();
     },
     preludesChanged(cards: Array<CardName>) {
@@ -275,12 +292,17 @@ export default defineComponent({
     calcuateWarning(): boolean {
       // Start with warning being empty.
       this.warning = undefined;
-      if (this.selectedCorporations.length === 0) {
-        this.warning = 'Select a corporation';
+      const corpMin = this.corpCardOption.min;
+      if (this.selectedCorporations.length < corpMin) {
+        this.warning = corpMin === 1 ? 'Select a corporation' : `Select ${corpMin} corporations`;
         return false;
       }
-      if (this.selectedCorporations.length > 1) {
+      if (this.selectedCorporations.length > corpMin) {
         this.warning = 'You selected too many corporations';
+        return false;
+      }
+      if (corpMin > 1 && this.mainCorporation === undefined) {
+        this.warning = 'Select a main corporation';
         return false;
       }
       if (this.hasPrelude) {
@@ -341,9 +363,10 @@ export default defineComponent({
       return hasOption(this.playerinput.options, titles.SELECT_CEO_TITLE);
     },
     corpCardOption() {
-      const option = getOption(this.playerinput.options, titles.SELECT_CORPORATION_TITLE);
+      const option = hasOption(this.playerinput.options, titles.SELECT_CORPORATIONS_TITLE)
+        ? getOption(this.playerinput.options, titles.SELECT_CORPORATIONS_TITLE)
+        : getOption(this.playerinput.options, titles.SELECT_CORPORATION_TITLE);
       if (getPreferences().experimental_ui) {
-        option.min = 1;
         option.max = option.cards.length;
       }
       return option;

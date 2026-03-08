@@ -156,6 +156,8 @@ const TEMPLATE_EXPECTED: CreateGameModel = {
   startingCeos: 3,
   startingPreludes: 4,
   startingPreludesInHand: 2,
+  corporationsToKeep: 1,
+  corporationsDraftVariant: undefined,
   preludeDraftVariant: false,
   ceosDraftVariant: false,
 };

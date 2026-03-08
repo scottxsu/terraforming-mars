@@ -46,7 +46,8 @@ export type GameOptions = {
   initialDraftVariant: boolean;
   preludeDraftVariant: boolean;
   ceosDraftVariant: boolean;
-  // corporationsDraft: boolean;
+  corporationsDraftVariant: boolean;
+  corporationsToKeep: number;
   startingCorporations: number;
   shuffleMapOption: boolean;
   randomMA: RandomMAOptionType;
@@ -135,6 +136,8 @@ export const DEFAULT_GAME_OPTIONS: GameOptions = {
   solarPhaseOption: false,
   soloTR: false,
   startingCeos: constants.CEO_CARDS_DEALT_PER_PLAYER,
+  corporationsDraftVariant: false,
+  corporationsToKeep: constants.CORPORATIONS_KEPT_PER_PLAYER,
   startingCorporations: constants.CORPORATION_CARDS_DEALT_PER_PLAYER,
   startingPreludes: constants.PRELUDE_CARDS_DEALT_PER_PLAYER,
   startingPreludesInHand: constants.PRELUDE_CARDS_KEPT_PER_PLAYER,

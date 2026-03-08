@@ -1,4 +1,6 @@
 export const SELECT_CORPORATION_TITLE = 'Select corporation' as const;
+export const SELECT_CORPORATIONS_TITLE = 'Select corporations' as const;
+export const SELECT_MAIN_CORPORATION_TITLE = 'Select main corporation' as const;
 export const SELECT_PRELUDE_TITLE = 'Select Prelude cards' as const;
 export const SELECT_CEO_TITLE = 'Select CEO' as const;
 export const SELECT_PROJECTS_TITLE = 'Select initial cards to buy' as const;

@@ -8,8 +8,9 @@ import {SelectCard} from './inputs/SelectCard';
 import {message} from './logs/MessageBuilder';
 import {IPreludeCard} from './cards/prelude/IPreludeCard';
 import {ICeoCard} from './cards/ceos/ICeoCard';
+import {ICorporationCard} from './cards/corporation/ICorporationCard';
 
-export type DraftType = 'none' | 'initial' | 'prelude' | 'ceos' | 'standard';
+export type DraftType = 'none' | 'initial' | 'prelude' | 'corporation' | 'ceos' | 'standard';
 
 /*
  * Drafting terminology:
@@ -232,6 +233,9 @@ class InitialDraft extends Draft {
       }
       if (this.game.gameOptions.preludeExtension && this.game.gameOptions.preludeDraftVariant) {
         newPreludeDraft(this.game).startDraft();
+      } else if (this.game.gameOptions.corporationsDraftVariant && this.game.gameOptions.corporationsToKeep > 1) {
+        this.game.initialDraftIteration++;
+        newCorporationDraft(this.game).startDraft();
       } else if (this.game.gameOptions.ceoExtension && this.game.gameOptions.ceosDraftVariant) {
         this.game.initialDraftIteration++;
         newCEOsDraft(this.game).startDraft();
@@ -267,7 +271,10 @@ class PreludeDraft extends Draft {
       player.dealtPreludeCards = player.draftedCards as Array<IPreludeCard>;
       player.draftedCards = [];
     }
-    if (this.game.gameOptions.ceoExtension && this.game.gameOptions.ceosDraftVariant) {
+    if (this.game.gameOptions.corporationsDraftVariant && this.game.gameOptions.corporationsToKeep > 1) {
+      this.game.draftRound = 1;
+      newCorporationDraft(this.game).startDraft();
+    } else if (this.game.gameOptions.ceoExtension && this.game.gameOptions.ceosDraftVariant) {
       this.game.draftRound = 1;
       newCEOsDraft(this.game).startDraft();
     } else {
@@ -304,6 +311,41 @@ class CEOsDraft extends Draft {
   }
 }
 
+class CorporationDraft extends Draft {
+  constructor(game: IGame) {
+    super('corporation', game);
+  }
+
+  override draw(player: IPlayer): Array<IProjectCard> {
+    // ICorporationCard doesn't extend IProjectCard, so we need a type assertion.
+    // The draft system only uses ICard-level operations on these.
+    return player.dealtCorporationCards as unknown as Array<IProjectCard>;
+  }
+
+  override cardsToKeep(_player: IPlayer): number {
+    return 1;
+  }
+
+  override passDirection(): 'before' {
+    // Opposite of the prelude draft direction ('after')
+    return 'before';
+  }
+
+  override endRound() {
+    this.game.initialDraftIteration++;
+    for (const player of this.game.players) {
+      player.dealtCorporationCards = player.draftedCards as unknown as Array<ICorporationCard>;
+      player.draftedCards = [];
+    }
+    if (this.game.gameOptions.ceoExtension && this.game.gameOptions.ceosDraftVariant) {
+      this.game.draftRound = 1;
+      newCEOsDraft(this.game).startDraft();
+    } else {
+      this.game.gotoInitialResearchPhase();
+    }
+  }
+}
+
 export function newStandardDraft(game: IGame) {
   return new StandardDraft(game);
 }
@@ -318,4 +360,8 @@ export function newPreludeDraft(game: IGame) {
 
 export function newCEOsDraft(game: IGame) {
   return new CEOsDraft(game);
+}
+
+export function newCorporationDraft(game: IGame) {
+  return new CorporationDraft(game);
 }

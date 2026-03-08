@@ -65,6 +65,8 @@ export function defaultCreateGameModel(): CreateGameModel {
     twoCorpsVariant: false,
     customCeos: [],
     startingCeos: 3,
+    corporationsToKeep: 1,
+    corporationsDraftVariant: undefined,
     startingPreludes: 4,
     startingPreludesInHand: 2,
     preludeDraftVariant: undefined,

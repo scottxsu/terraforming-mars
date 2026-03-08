@@ -69,7 +69,7 @@ import {UnderworldData} from './underworld/UnderworldData';
 import {UnderworldExpansion} from './underworld/UnderworldExpansion';
 import {SendDelegateToArea} from './deferredActions/SendDelegateToArea';
 import {BuildColony} from './deferredActions/BuildColony';
-import {newInitialDraft, newPreludeDraft, newCEOsDraft, newStandardDraft} from './Draft';
+import {newInitialDraft, newPreludeDraft, newCEOsDraft, newCorporationDraft, newStandardDraft} from './Draft';
 import {partition, sum, toID, toName} from '../common/utils/utils';
 import {OrOptions} from './inputs/OrOptions';
 import {SelectOption} from './inputs/SelectOption';
@@ -393,6 +393,9 @@ export class Game implements IGame, Logger {
         gameOptions.underworldExpansion ||
         gameOptions.moonExpansion) {
         player.dealtCorporationCards.push(...corporationDeck.drawN(game, gameOptions.startingCorporations));
+        if (gameOptions.corporationsToKeep > 1) {
+          gameOptions.startingCorporations = Math.max(gameOptions.startingCorporations, gameOptions.corporationsToKeep);
+        }
         if (gameOptions.initialDraftVariant === false) {
           player.dealtProjectCards.push(...projectDeck.drawN(game, 10));
         }
@@ -1002,7 +1005,12 @@ export class Game implements IGame, Logger {
       this.researchedPlayers.add(player.id);
       if (this.researchedPlayers.size === this.players.length) {
         this.researchedPlayers.clear();
-        this.phase = Phase.ACTION;
+        const hasSecondaryCorporations = this.players.some((p) => p.secondaryCorporations.length > 0);
+        if (hasSecondaryCorporations) {
+          this.phase = Phase.CORPORATIONS;
+        } else {
+          this.phase = Phase.ACTION;
+        }
         this.passedPlayers.clear();
         this.potentiallyChangeFirstPlayer();
 
@@ -1773,6 +1781,9 @@ export class Game implements IGame, Logger {
           newPreludeDraft(game).restoreDraft();
           break;
         case 4:
+          newCorporationDraft(game).restoreDraft();
+          break;
+        case 5:
           newCEOsDraft(game).restoreDraft();
         }
       } else {

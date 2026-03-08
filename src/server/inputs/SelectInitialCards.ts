@@ -33,24 +33,45 @@ export class SelectInitialCards extends OptionsInput<undefined> {
     super('initialCards', '', []);
     const game = player.game;
     let corporation: ICorporationCard;
+    let selectedCorporations: Array<ICorporationCard> = [];
     this.title = ' ';
     this.buttonLabel = 'Start';
 
+    const corpsToKeep = game.gameOptions.corporationsToKeep ?? 1;
+    const multiCorp = corpsToKeep > 1;
 
-    this.push('corp',
-      new SelectCard<ICorporationCard>(
-        titles.SELECT_CORPORATION_TITLE, undefined, player.dealtCorporationCards, {min: 1, max: 1}).andThen(
-        (cards) => {
-          if (cards.length !== 1) {
-            throw new InputError('Only select 1 corporation card');
-          }
-          corporation = cards[0];
-          return undefined;
-        }),
-    );
+    if (multiCorp) {
+      // Multi-corp: select N corps, then designate main
+      this.push('corp',
+        new SelectCard<ICorporationCard>(
+          titles.SELECT_CORPORATIONS_TITLE, undefined, player.dealtCorporationCards, {min: corpsToKeep, max: corpsToKeep}).andThen(
+          (cards) => {
+            if (cards.length !== corpsToKeep) {
+              throw new InputError(`Select exactly ${corpsToKeep} corporation cards`);
+            }
+            selectedCorporations = [...cards];
+            // Default main corp is the first selected; will be overridden if > 2
+            corporation = cards[0];
+            return undefined;
+          }),
+      );
+    } else {
+      this.push('corp',
+        new SelectCard<ICorporationCard>(
+          titles.SELECT_CORPORATION_TITLE, undefined, player.dealtCorporationCards, {min: 1, max: 1}).andThen(
+          (cards) => {
+            if (cards.length !== 1) {
+              throw new InputError('Only select 1 corporation card');
+            }
+            corporation = cards[0];
+            selectedCorporations = [...cards];
+            return undefined;
+          }),
+      );
+    }
 
-    // Give each player Merger in this variant
-    if (game.gameOptions.twoCorpsVariant) {
+    // Give each player Merger in this variant (only when not using multi-corp)
+    if (game.gameOptions.twoCorpsVariant && !multiCorp) {
       player.dealtPreludeCards.push(new Merger());
     }
 
@@ -86,14 +107,14 @@ export class SelectInitialCards extends OptionsInput<undefined> {
         }),
     );
     this.andThen(() => {
-      this.completed(corporation);
+      this.completed(corporation, selectedCorporations);
       // TODO(kberg): This is probably broken. Stop subclassing AndOptions.
       cb(corporation);
       return undefined;
     });
   }
 
-  private completed(corporation: ICorporationCard) {
+  private completed(corporation: ICorporationCard, selectedCorporations: Array<ICorporationCard>) {
     const player = this.player;
     const game = player.game;
     // Check for negative M€
@@ -104,14 +125,18 @@ export class SelectInitialCards extends OptionsInput<undefined> {
       throw new InputError('Too many cards selected');
     }
 
+    // Store secondary corporations for later play
+    player.secondaryCorporations = selectedCorporations.filter((c) => c.name !== corporation.name);
+
     for (const card of player.dealtProjectCards) {
       if (player.cardsInHand.includes(card) === false) {
         game.projectDeck.discard(card);
       }
     }
 
+    const selectedCorpNames = new Set(selectedCorporations.map((c) => c.name));
     for (const card of player.dealtCorporationCards) {
-      if (card.name !== corporation.name) {
+      if (!selectedCorpNames.has(card.name)) {
         game.corporationDeck.discard(card);
       }
     }

@@ -397,7 +397,8 @@ export class Game implements IGame, Logger {
           player.dealtProjectCards.push(...projectDeck.drawN(game, 10));
         }
         if (gameOptions.preludeExtension) {
-          gameOptions.startingPreludes = Math.max(gameOptions.startingPreludes ?? 0, constants.PRELUDE_CARDS_DEALT_PER_PLAYER);
+          gameOptions.startingPreludesInHand = gameOptions.startingPreludesInHand ?? constants.PRELUDE_CARDS_KEPT_PER_PLAYER;
+          gameOptions.startingPreludes = Math.max(gameOptions.startingPreludes ?? 0, gameOptions.startingPreludesInHand, constants.PRELUDE_CARDS_DEALT_PER_PLAYER);
           player.dealtPreludeCards.push(...preludeDeck.drawN(game, gameOptions.startingPreludes));
         }
         if (gameOptions.ceoExtension) {

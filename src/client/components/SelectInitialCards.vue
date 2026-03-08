@@ -284,11 +284,12 @@ export default defineComponent({
         return false;
       }
       if (this.hasPrelude) {
-        if (this.selectedPreludes.length < 2) {
-          this.warning = 'Select 2 preludes';
+        const preludeMin = this.preludeCardOption.min;
+        if (this.selectedPreludes.length < preludeMin) {
+          this.warning = `Select ${preludeMin} preludes`;
           return false;
         }
-        if (this.selectedPreludes.length > 2) {
+        if (this.selectedPreludes.length > preludeMin) {
           this.warning = 'You selected too many preludes';
           return false;
         }

@@ -77,6 +77,7 @@ const TEMPLATE_INPUT = {
   customCeos: [],
   startingCeos: 3,
   startingPreludes: 4,
+  startingPreludesInHand: 2,
 };
 
 const TEMPLATE_EXPECTED: CreateGameModel = {
@@ -154,6 +155,7 @@ const TEMPLATE_EXPECTED: CreateGameModel = {
   customCeos: [],
   startingCeos: 3,
   startingPreludes: 4,
+  startingPreludesInHand: 2,
   preludeDraftVariant: false,
   ceosDraftVariant: false,
 };

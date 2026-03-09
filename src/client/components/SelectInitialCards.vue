@@ -132,27 +132,39 @@ export default defineComponent({
         const corp = getCardOrThrow(name);
         let mc = (corp.startingMegaCredits ?? 0) - constants.SECONDARY_CORP_COST;
         // Check if playing this corp triggers effects from already-active corps
-        mc += this.corpPlayedBonus(name, activeCorps);
+        mc += this.secondaryCorpPlayBonus(name, activeCorps);
         total += mc;
         activeCorps.push(name);
       }
       return total;
     },
-    /** Bonus MC from playing a corporation card when `activeCorps` are already in play. */
-    corpPlayedBonus(playedCorp: CardName, activeCorps: Array<CardName>): number {
+    /**
+     * Calculates the MC bonus (or penalty) from playing a secondary corporation,
+     * accounting for effects from all already-active corps and the played corp's own effect.
+     * For example, if Splice is active and the played corp has a microbe tag, Splice grants +2 MC.
+     */
+    secondaryCorpPlayBonus(playedCorp: CardName, activeCorps: Array<CardName>): number {
       const card = getCardOrThrow(playedCorp);
       let bonus = 0;
       // Check effects from already-active corps AND the corp's own effect on itself
       for (const activeCorp of [...activeCorps, playedCorp]) {
-        bonus += this.effectBonusForCard(card, activeCorp);
+        bonus += this.corpEffectMCBonus(card, activeCorp);
       }
       return bonus;
     },
-    /** Bonus MC that `activeCorp`'s effect provides when `card` (a prelude or corp) is played. */
-    effectBonusForCard(card: {tags: ReadonlyArray<string>, productionBox?: {megacredits?: number}, name: CardName}, activeCorp: CardName): number {
+    /**
+     * Returns the MC bonus (or penalty) that a corporation's passive effect grants
+     * when a given card (corporation or prelude) is played. Only considers effects
+     * that immediately change the player's MC, such as:
+     * - Manutech: gain MC equal to MC production increase
+     * - Pharmacy Union: lose 4 MC per microbe tag
+     * - Splice: gain 2 MC per microbe tag
+     * - Sagitta Frontier Services: gain MC based on tag count
+     */
+    corpEffectMCBonus(card: {tags: ReadonlyArray<string>, productionBox?: {megacredits?: number}, name: CardName}, activeCorp: CardName): number {
       switch (activeCorp) {
       case CardName.MANUTECH:
-        return card.productionBox?.megacredits ?? 0;
+        return Math.max(0, card.productionBox?.megacredits ?? 0);
       case CardName.THARSIS_REPUBLIC:
         // Cities from preludes — corps don't typically place cities on play
         return 0;
@@ -176,27 +188,38 @@ export default defineComponent({
       return sum(this.selectedPreludes.map((prelude) => {
         const card = getCardOrThrow(prelude);
         const base = card.startingMegaCredits ?? 0;
-        return base + this.extraFromAllCorps(prelude);
+        return base + this.preludeTotalCorpBonusMC(prelude);
       }));
     },
-    /** Computes bonus MC a prelude gets from ALL active corporations (main + secondary). */
-    extraFromAllCorps(prelude: CardName): number {
+    /**
+     * Total MC bonus a prelude receives from all active corporations' effects
+     * (main + all secondary corps) when the prelude is played.
+     */
+    preludeTotalCorpBonusMC(prelude: CardName): number {
       const allCorps = this.mainCorporation
         ? [this.mainCorporation, ...this.selectedCorporations.filter((c) => c !== this.mainCorporation)]
         : this.selectedCorporations;
       let bonus = 0;
       for (const corp of allCorps) {
-        bonus += this.extraForCorp(prelude, corp);
+        bonus += this.preludeCorpInteractionMC(prelude, corp);
       }
       return bonus;
     },
-    /** Computes bonus MC a prelude gets from a specific corporation's effect. */
-    extraForCorp(prelude: CardName, corp: CardName): number {
+    /**
+     * Returns the MC bonus (or penalty) a specific corporation's effect grants
+     * when a given prelude is played. Covers effects like:
+     * - Manutech: gain MC equal to the prelude's MC production increase
+     * - Tharsis Republic: +3 MC if the prelude places a city
+     * - Aphrodite: +2 MC per Venus terraforming step
+     * - Polaris: +4 MC per ocean tile placed
+     * - Head Start: +2 MC per project card in hand
+     */
+    preludeCorpInteractionMC(prelude: CardName, corp: CardName): number {
       const card = getCardOrThrow(prelude);
       switch (corp) {
       // For each step you increase the production of a resource ... you also gain that resource.
       case CardName.MANUTECH:
-        return card.productionBox?.megacredits ?? 0;
+        return Math.max(0, card.productionBox?.megacredits ?? 0);
 
       // When you place a city tile, gain 3 M€.
       case CardName.THARSIS_REPUBLIC:
@@ -204,6 +227,7 @@ export default defineComponent({
         case CardName.SELF_SUFFICIENT_SETTLEMENT:
         case CardName.EARLY_SETTLEMENT:
         case CardName.STRATEGIC_BASE_PLANNING:
+        case CardName.PROJECT_EDEN:
           return 3;
         }
         return 0;

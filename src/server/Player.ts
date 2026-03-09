@@ -1448,6 +1448,7 @@ export class Player implements IPlayer {
             return undefined;
           });
 
+        game.actionId++;
         this.setWaitingFor(selectCorp, this.runWhenEmpty(() => {
           this.incrementActionsTaken();
           if (this.secondaryCorporations.length === 0) {
@@ -1466,6 +1467,7 @@ export class Player implements IPlayer {
 
         const selectPrelude = PreludesExpansion.selectPreludeToPlay(this, this.preludeCardsInHand);
 
+        game.actionId++;
         this.setWaitingFor(selectPrelude, this.runWhenEmpty(() => {
           this.incrementActionsTaken();
           if (this.preludeCardsInHand.length === 0 && !this.headStartIsInEffect()) {
@@ -1535,6 +1537,7 @@ export class Player implements IPlayer {
         orOptions.options.push(this.passOption());
       }
 
+      game.actionId++;
       this.setWaitingFor(orOptions, () => {
         // Each initial action counts as one action
         this.incrementActionsTaken();
@@ -1544,6 +1547,7 @@ export class Player implements IPlayer {
       return;
     }
 
+    game.actionId++;
     this.setWaitingFor(this.getActions(), () => {
       this.incrementActionsTaken();
       this.takeAction();

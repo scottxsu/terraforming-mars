@@ -388,7 +388,7 @@ describe('Merger', () => {
     // Robin Haulings: 39MC, add 1 floater to any card. (Helion + X)
   });
 
-  it('All corporation first actions count as a single action', () => {
+  it('Each corporation first action counts as its own action', () => {
     const [game, player, player2] = testGame(2, {venusNextExtension: true});
     const inventrix = new Inventrix(); // Draw 3 cards
     const ambient = new Ambient(); // Raise venus 2 steps
@@ -410,8 +410,8 @@ describe('Merger', () => {
     expect(player.cardsInHand).has.length(3);
     expect(player.pendingInitialActions).has.length(1);
 
-    // Still hasn't completed an action this round,
-    expect(player.actionsTakenThisRound).eq(0);
+    // First initial action counts as one action
+    expect(player.actionsTakenThisRound).eq(1);
 
     const secondAction = cast(player.getWaitingFor(), OrOptions);
 
@@ -424,12 +424,12 @@ describe('Merger', () => {
     expect(game.getVenusScaleLevel()).eq(4);
     expect(player.pendingInitialActions).has.length(0);
 
-    // Completed both first actions, which is one action.
-    expect(player.actionsTakenThisRound).eq(1);
+    // Both initial actions taken, each counted as its own action.
+    // The player's turn ended because 2 actions were used (actionsTakenThisRound reset to 0).
+    expect(player.actionsTakenThisRound).eq(0);
 
-    // first player is still active player;
-    expect(game.activePlayer.id).eq(player.id);
-    expect(player.getWaitingFor()).is.not.undefined;
-    expect(player2.getWaitingFor()).is.undefined;
+    // Player's turn is over since they used both actions on initial actions.
+    // Next player should be active.
+    expect(game.activePlayer.id).eq(player2.id);
   });
 });

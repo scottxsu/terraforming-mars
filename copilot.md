@@ -353,3 +353,31 @@ const [game, player] = testGame(1, {turmoilExtension: true});
 - **Deferred actions over return values**: Complex effects should use `game.defer(new SomeAction(...))` rather than returning `PlayerInput` from `play()`.
 - **Server model transformation**: `ServerModel.ts` converts server `IGame`/`IPlayer` state into client-consumable view models.
 - **Common types shared**: Types in `src/common/` are used by both server and client — never import server code from client or vice versa.
+
+### Action Lifecycle & Deferred Actions
+
+The `takeAction()` method in `Player.ts` is the central loop for player turns. Understanding its execution order is critical:
+
+1. **Deferred actions run first**: At the top of `takeAction()`, any queued deferred actions are processed before anything else.
+2. **Phase-specific blocks**: Preludes → CEOs → ACTION phase checks → Initial actions → Regular actions.
+3. **`setWaitingFor` + callback**: Each action presentation calls `setWaitingFor(input, callback)`. When the player submits input, `process()` runs the card effects, then calls the callback.
+4. **`runWhenEmpty` wrapper**: Some callbacks use `this.runWhenEmpty(cb)` to delay execution until all deferred actions are resolved. This ensures counters like `actionsTakenThisGame` only increment after all effects of an action are complete.
+
+**Execution order for a regular action**:
+```
+process() → card effects execute → deferred actions queued
+         → callback fires → [runWhenEmpty waits for deferred actions]
+         → incrementActionsTaken() → takeAction() → present next action
+```
+
+**Key timing rule**: Card effects and their deferred consequences run BEFORE `incrementActionsTaken()`. This means `actionsTakenThisGame` is stable (unchanged) during the entire execution of an action, including its deferred resolution. Cards like Suitable Infrastructure rely on this stability.
+
+### Custom Game Options (Fork Additions)
+
+This fork adds several custom game options beyond the base game:
+
+- **`startingPreludesInHand`**: Number of preludes to keep (default 2, configurable)
+- **`corporationsToKeep`**: Number of corporations to keep during initial selection (default 1; >1 enables multi-corp mode)
+- **`corporationsDraftVariant`**: When true and `corporationsToKeep > 1`, corporations are drafted after preludes
+- **Secondary Corporation Phase** (`Phase.CORPORATIONS`): When multi-corp is enabled, players play secondary corps one at a time (like preludes) between research and prelude phases. Each costs 42 MC. Unaffordable corps fizzle (+15 MC, like preludes).
+- **Corporation Draft**: Pick-1-pass-rest mechanic, same as prelude draft but passes in the opposite direction.
